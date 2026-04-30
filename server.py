@@ -418,6 +418,19 @@ def create_mcp() -> FastMCP:
         if not debug_enabled:
             return
         LOGGER.info("X API request %s %s", request.method, request.url)
+        if is_truthy(os.getenv("X_API_DEBUG_HEADERS", "0")):
+            redacted = {}
+            for name, value in request.headers.items():
+                lname = name.lower()
+                if lname == "authorization":
+                    redacted[name] = (
+                        f"<{value.split(' ', 1)[0]} len={len(value)}>"
+                        if " " in value
+                        else f"<len={len(value)}>"
+                    )
+                else:
+                    redacted[name] = value
+            LOGGER.info("X API request headers: %s", redacted)
 
     async def log_response(response: httpx.Response) -> None:
         if not debug_enabled:
