@@ -391,7 +391,25 @@ def create_mcp() -> FastMCP:
 
     b3_flags = os.getenv("X_B3_FLAGS", "1")
 
+    # Headers that should be sent to api.x.com. Anything else gets stripped
+    # before signing so that inbound headers from upstream gateways
+    # (FastMCP Cloud / Horizon / Lambda / Vercel / Sentry) don't leak into
+    # outbound requests, where Cloudflare's edge WAF rejects them as 400.
+    OUTBOUND_HEADER_ALLOWLIST = frozenset(
+        {
+            "accept",
+            "accept-encoding",
+            "connection",
+            "content-length",
+            "content-type",
+            "host",
+            "user-agent",
+        }
+    )
+
     async def sign_oauth1_request(request: httpx.Request) -> None:
+        for name in [n for n in request.headers if n.lower() not in OUTBOUND_HEADER_ALLOWLIST]:
+            del request.headers[name]
         request.headers["X-B3-Flags"] = b3_flags
         headers = dict(request.headers)
         content_type = headers.get("Content-Type", "")
