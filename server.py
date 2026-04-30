@@ -438,9 +438,13 @@ def create_mcp() -> FastMCP:
                 text = text[:1000] + "...<truncated>"
             LOGGER.warning("X API error body: %s", text)
 
+    user_agent = os.getenv(
+        "X_API_USER_AGENT",
+        "xmcp/1.0 (+https://github.com/xdevplatform/xmcp)",
+    )
     client = httpx.AsyncClient(
         base_url=base_url,
-        headers={},
+        headers={"User-Agent": user_agent},
         timeout=timeout,
         event_hooks={
             "request": [normalize_query_params, sign_oauth1_request, log_request],
